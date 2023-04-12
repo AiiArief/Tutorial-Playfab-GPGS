@@ -28,6 +28,7 @@ public class UIGameManager : MonoBehaviour
 
     [Header("Content")]
     [SerializeField] Text m_contentText;
+    [SerializeField] Button m_requestServerSideAccessButton;
 
     private void _OnPlayFabLoginSuccess(LoginResult result)
     {
@@ -176,9 +177,23 @@ public class UIGameManager : MonoBehaviour
             Debug.LogWarning("// ================================= Login with Google done. Id: " + PlayGamesPlatform.Instance.localUser.id);
             m_contentPanel.SetActive(true);
             m_contentText.text = "Bisa login pake google play cuuuuy\n" + PlayGamesPlatform.Instance.localUser.userName;
-            PlayGamesPlatform.Instance.RequestServerSideAccess(true, (serverAuthCode) =>  // masih ke cancel disini??? server auth codenya null
+            RequestServerSideAccessButton();
+        }
+        else
+        {
+            m_loginPanel.SetActive(true);
+            Debug.LogError("// ======================================== Failed google play auth : " + status.ToString());
+        }
+    }
+
+    public void RequestServerSideAccessButton()
+    {
+        m_requestServerSideAccessButton.gameObject.SetActive(false);
+        PlayGamesPlatform.Instance.RequestServerSideAccess(true, (serverAuthCode) =>  // masih ke cancel disini??? server auth codenya null
+        {
+            Debug.LogWarning("// ================================= Server Auth Code: " + serverAuthCode + " - authenticated : " + PlayGamesPlatform.Instance.IsAuthenticated());
+            if(!string.IsNullOrEmpty(serverAuthCode))
             {
-                Debug.LogWarning("// ================================= Server Auth Code: " + serverAuthCode + " - authenticated : " + PlayGamesPlatform.Instance.IsAuthenticated());
                 PlayFabClientAPI.LoginWithGooglePlayGamesServices(new LoginWithGooglePlayGamesServicesRequest()
                 {
                     TitleId = PlayFabSettings.TitleId,
@@ -186,13 +201,11 @@ public class UIGameManager : MonoBehaviour
                     ServerAuthCode = serverAuthCode,
                     //EncryptedRequest
                 }, _OnPlayFabLoginSuccess, _OnPlayFabError);
-            });
-        }
-        else
-        {
-            m_loginPanel.SetActive(true);
-            Debug.LogError("// ======================================== Failed google play auth : " + status.ToString());
-        }
+            } else
+            {
+                m_requestServerSideAccessButton.gameObject.SetActive(true);
+            }
+        });
     }
 
 #if UNITY_EDITOR
