@@ -7,6 +7,7 @@ using PlayFab.ClientModels;
 using UnityEditor;
 using GooglePlayGames;
 using GooglePlayGames.BasicApi;
+using System;
 
 public class LoginWithGoogleAccountRequestAccessToken : LoginWithGoogleAccountRequest
 {
@@ -188,7 +189,7 @@ public class UIGameManager : MonoBehaviour
 
     public void RequestServerSideAccessButton()
     {
-        m_requestServerSideAccessButton.gameObject.SetActive(false);
+        m_requestServerSideAccessButton.gameObject.SetActive(false);       
         PlayGamesPlatform.Instance.RequestServerSideAccess(true, (serverAuthCode) =>  // masih ke cancel disini??? server auth codenya null
         {
             Debug.LogWarning("// ================================= Server Auth Code: " + serverAuthCode + " - authenticated : " + PlayGamesPlatform.Instance.IsAuthenticated());
@@ -206,6 +207,23 @@ public class UIGameManager : MonoBehaviour
                 m_requestServerSideAccessButton.gameObject.SetActive(true);
             }
         });
+    }
+
+    private string authorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
+    private string redirectURI = "https://oauth.playfab.com/oauth2/google";
+    private object clientID = "357333282570-ijm1oov722u4pb2rr577dvom1ldijfs6.apps.googleusercontent.com";
+    private string scopes = "profile";
+
+    public void LaunchBrowserAuth()
+    {
+        Debug.LogWarning("// =================================== launching browser auth");
+        string authorizationRequest = string.Format("{0}?response_type=code&scope={1}&redirect_uri={2}&client_id={3}",
+                authorizationEndpoint,
+                scopes,
+                Uri.EscapeDataString(redirectURI),
+                clientID);
+
+        Application.OpenURL(authorizationRequest);
     }
 
 #if UNITY_EDITOR
