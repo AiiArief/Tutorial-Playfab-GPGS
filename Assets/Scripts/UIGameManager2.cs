@@ -6,8 +6,8 @@ using UnityEngine.UI;
 using PlayFab;
 using PlayFab.ClientModels;
 #if UNITY_ANDROID
-using GooglePlayGames;
-using GooglePlayGames.BasicApi;
+//using GooglePlayGames;
+//using GooglePlayGames.BasicApi;
 #endif
 
 public class UIGameManager2 : MonoBehaviour
@@ -41,7 +41,7 @@ public class UIGameManager2 : MonoBehaviour
 #if UNITY_ANDROID
         m_connectionLoading.SetActive(true);
 
-        PlayGamesPlatform.Instance.Authenticate(_ProcessAuthentication);
+        //PlayGamesPlatform.Instance.Authenticate(_ProcessAuthentication);
 #endif
     }
 
@@ -57,26 +57,26 @@ public class UIGameManager2 : MonoBehaviour
         m_contentPanel.SetActive(false);
 
 #if UNITY_ANDROID
-        PlayGamesPlatform.Activate();
+        //PlayGamesPlatform.Activate();
 #endif
     }
 
     private void OnEnable()
     {
-        if(SystemInfo.deviceType == DeviceType.Desktop)
-        {
+        //if(SystemInfo.deviceType == DeviceType.Desktop)
+        //{
             ProcessDeepLinkMngr.Instance.OnDeeplinkLoginSuccess += OnLoginWithGooglePlayGamesServicesSuccess;
             ProcessDeepLinkMngr.Instance.OnDeeplinkLoginFailure += OnLoginWithGooglePlayGamesServicesFailure;
-        }
+        //}
     }
 
     private void OnDisable()
     {
-        if (SystemInfo.deviceType == DeviceType.Desktop)
-        {
+        //if (SystemInfo.deviceType == DeviceType.Desktop)
+        //{
             ProcessDeepLinkMngr.Instance.OnDeeplinkLoginSuccess -= OnLoginWithGooglePlayGamesServicesSuccess;
             ProcessDeepLinkMngr.Instance.OnDeeplinkLoginFailure -= OnLoginWithGooglePlayGamesServicesFailure;
-        }
+        //}
     }
 
     private string authorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -96,20 +96,20 @@ public class UIGameManager2 : MonoBehaviour
     }
 
 #if UNITY_ANDROID
-    private void _ProcessAuthentication(SignInStatus status)
-    {
-        if (status == SignInStatus.Success)
-        {
-            PlayGamesPlatform.Instance.RequestServerSideAccess(false, ProcessServerAuthCode);
-        }
-        else
-        {
-            m_connectionLoading.SetActive(false);
-            m_loginPanel.SetActive(true);
-            m_contentPanel.SetActive(false);
-            Debug.LogError("// ======================================== Failed google play auth : " + status.ToString());
-        }
-    }
+    //private void _ProcessAuthentication(SignInStatus status)
+    //{
+    //    if (status == SignInStatus.Success)
+    //    {
+    //        PlayGamesPlatform.Instance.RequestServerSideAccess(false, ProcessServerAuthCode);
+    //    }
+    //    else
+    //    {
+    //        m_connectionLoading.SetActive(false);
+    //        m_loginPanel.SetActive(true);
+    //        m_contentPanel.SetActive(false);
+    //        Debug.LogError("// ======================================== Failed google play auth : " + status.ToString());
+    //    }
+    //}
 
     private void ProcessServerAuthCode(string serverAuthCode)
     {
