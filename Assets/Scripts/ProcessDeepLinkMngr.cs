@@ -1,26 +1,34 @@
-using GooglePlayGames;
-using GooglePlayGames.BasicApi;
+using ImaginationOverflow.UniversalDeepLinking;
 using PlayFab;
 using PlayFab.ClientModels;
 using System;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class ProcessDeepLinkMngr : MonoBehaviour
 {
     public static ProcessDeepLinkMngr Instance { get; private set; }
+
+    public Action<LoginResult> OnDeeplinkLoginSuccess;
+    public Action<PlayFabError> OnDeeplinkLoginFailure;
+
+    public void ManualInputAuth(UnityEngine.UI.InputField inputField)
+    {
+        var authCode = inputField.text;
+        _LoginWithGoogleAccount(authCode);
+    }
 
     private void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
-            Application.deepLinkActivated += onDeepLinkActivated;
-            if (!string.IsNullOrEmpty(Application.absoluteURL))
-            {
-                // Cold start and Application.absoluteURL not null so process Deep Link.
-                onDeepLinkActivated(Application.absoluteURL);
-            }
+            //Application.deepLinkActivated += onDeepLinkActivated;
+            //if (!string.IsNullOrEmpty(Application.absoluteURL))
+            //{
+            //    // Cold start and Application.absoluteURL not null so process Deep Link.
+            //    onDeepLinkActivated(Application.absoluteURL);
+            //}
+            DeepLinkManager.Instance.LinkActivated += _OnDeepLinkActivated;
 
             DontDestroyOnLoad(gameObject);
         }
@@ -30,8 +38,14 @@ public class ProcessDeepLinkMngr : MonoBehaviour
         }
     }
 
-    private void onDeepLinkActivated(string url)
+    private void OnDestroy()
     {
+        DeepLinkManager.Instance.LinkActivated -= _OnDeepLinkActivated;
+    }
+
+    private void _OnDeepLinkActivated(LinkActivation la)
+    {
+        var url = la.Uri;
         Debug.Log("Got Deeplink Activated: " + url);
 
         // Decode the URL to extract auth code. 
@@ -48,6 +62,11 @@ public class ProcessDeepLinkMngr : MonoBehaviour
             }
         }
 
+        _LoginWithGoogleAccount(authCode);
+    }
+
+    private void _LoginWithGoogleAccount(string authCode)
+    {
         if (!string.IsNullOrEmpty(authCode))
         {
             // Call the LoginWithGoogleAccount using the auth code
@@ -60,21 +79,26 @@ public class ProcessDeepLinkMngr : MonoBehaviour
             {
                 ServerAuthCode = authCode,
                 CreateAccount = true,
-                TitleId = PlayFabSettings.TitleId
+                TitleId = PlayFabSettings.TitleId,
+                SetEmail = true,
             };
 
             PlayFabClientAPI.LoginWithGoogleAccount(request,
                 (LoginResult result) => {
                     Debug.Log("PlayFab LoginWithGoogleAccount Success.");
+                    OnDeeplinkLoginSuccess(result);
                 },
                 (PlayFabError error) => {
                     Debug.Log("PlayFab LoginWithGoogleAccount Failure: " + error.GenerateErrorReport());
+                    OnDeeplinkLoginFailure(error);
                 }
             );
         }
         else
         {
             Debug.Log("Error when getting Auth Code.");
+            PlayFabError error = new PlayFabError();
+            OnDeeplinkLoginFailure(error);
         }
     }
 }
