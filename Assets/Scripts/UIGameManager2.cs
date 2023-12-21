@@ -5,10 +5,15 @@ using UnityEngine;
 using UnityEngine.UI;
 using PlayFab;
 using PlayFab.ClientModels;
+using Assets.SimpleGoogleSignIn.Scripts;
 #if UNITY_ANDROID
 //using GooglePlayGames;
 //using GooglePlayGames.BasicApi;
 #endif
+
+public class LoginRequest : LoginWithGoogleAccountRequest {
+    public string AccessToken;
+}
 
 public class UIGameManager2 : MonoBehaviour
 {
@@ -22,18 +27,13 @@ public class UIGameManager2 : MonoBehaviour
     [SerializeField] GameObject m_connectionLoading;
     [SerializeField] Text m_versionText;
 
+    public GoogleAuth GoogleAuth;
+
     public void PCSignInButton()
     {
         m_connectionLoading.SetActive(true);
-        LaunchBrowserAuth();
-        
-        //var request = new LoginWithGoogleAccountRequest()
-        //{
-        //    CreateAccount = true,
-        //    TitleId = PlayFabSettings.TitleId,
-        //    ServerAuthCode = ""
-        //};
-        //PlayFabClientAPI.LoginWithGoogleAccount(request, OnLoginWithGooglePlayGamesServicesSuccess, OnLoginWithGooglePlayGamesServicesFailure);
+
+        GoogleAuth.GetAccessToken(OnSignIn);
     }
 
     public void AndroidSignInButton()
@@ -45,8 +45,14 @@ public class UIGameManager2 : MonoBehaviour
 #endif
     }
 
+    public void LogoutButton()
+    {
+        GoogleAuth.SignOut();
+    }
+
     private void Awake()
     {
+        GoogleAuth = new GoogleAuth();
         m_versionText.text = "v." + Application.version;
 
         m_connectionLoading.SetActive(false);
@@ -63,36 +69,57 @@ public class UIGameManager2 : MonoBehaviour
 
     private void OnEnable()
     {
-        //if(SystemInfo.deviceType == DeviceType.Desktop)
-        //{
-            ProcessDeepLinkMngr.Instance.OnDeeplinkLoginSuccess += OnLoginWithGooglePlayGamesServicesSuccess;
-            ProcessDeepLinkMngr.Instance.OnDeeplinkLoginFailure += OnLoginWithGooglePlayGamesServicesFailure;
-        //}
+        //GoogleAuth.OnObtainedDeepLinkURL += ProcessServerAuthCode;
     }
 
     private void OnDisable()
     {
-        //if (SystemInfo.deviceType == DeviceType.Desktop)
-        //{
-            ProcessDeepLinkMngr.Instance.OnDeeplinkLoginSuccess -= OnLoginWithGooglePlayGamesServicesSuccess;
-            ProcessDeepLinkMngr.Instance.OnDeeplinkLoginFailure -= OnLoginWithGooglePlayGamesServicesFailure;
-        //}
+        //GoogleAuth.OnObtainedDeepLinkURL -= ProcessServerAuthCode;
     }
 
-    private string authorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
-    private string redirectURI = "https://oauth.playfab.com/oauth2/google";
-    private object clientID = "357333282570-ijm1oov722u4pb2rr577dvom1ldijfs6.apps.googleusercontent.com";
-    private string scopes = "profile";
+    //private string authorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
+    //private string redirectURI = "https://oauth.playfab.com/oauth2/google";
+    //private object clientID = "357333282570-ijm1oov722u4pb2rr577dvom1ldijfs6.apps.googleusercontent.com";
+    //private string scopes = "profile";
 
-    private void LaunchBrowserAuth()
+    //private void LaunchBrowserAuth()
+    //{
+    //    string authorizationRequest = string.Format("{0}?response_type=code&scope={1}&redirect_uri={2}&client_id={3}",
+    //            authorizationEndpoint,
+    //            scopes,
+    //            Uri.EscapeDataString(redirectURI),
+    //            clientID);
+
+    //    Application.OpenURL(authorizationRequest);
+    //}
+
+    private void OnSignIn(bool success, string error, TokenResponse tokenResponse)
     {
-        string authorizationRequest = string.Format("{0}?response_type=code&scope={1}&redirect_uri={2}&client_id={3}",
-                authorizationEndpoint,
-                scopes,
-                Uri.EscapeDataString(redirectURI),
-                clientID);
+        if(success)
+        {
+            Debug.Log("Access token : " + tokenResponse.AccessToken);
+            ProcessServerAuthCode(tokenResponse.AccessToken);
+        } else
+        {
+            Debug.Log("Error when getting Auth Code : " + error);
+            PlayFabError errorPF = new PlayFabError();
+            OnLoginWithGooglePlayGamesServicesFailure(errorPF);
+        }
+    }
 
-        Application.OpenURL(authorizationRequest);
+    private void ProcessServerAuthCode(string serverAuthCode)
+    {
+        Debug.Log("Server Auth Code: " + serverAuthCode);
+
+        var request = new LoginRequest
+        {
+            AccessToken = serverAuthCode,
+            //ServerAuthCode = serverAuthCode,
+            CreateAccount = true,
+            TitleId = PlayFabSettings.TitleId
+        };
+
+        PlayFabClientAPI.LoginWithGoogleAccount(request, OnLoginWithGooglePlayGamesServicesSuccess, OnLoginWithGooglePlayGamesServicesFailure);
     }
 
 #if UNITY_ANDROID
@@ -110,20 +137,6 @@ public class UIGameManager2 : MonoBehaviour
     //        Debug.LogError("// ======================================== Failed google play auth : " + status.ToString());
     //    }
     //}
-
-    private void ProcessServerAuthCode(string serverAuthCode)
-    {
-        Debug.Log("Server Auth Code: " + serverAuthCode);
-
-        var request = new LoginWithGooglePlayGamesServicesRequest
-        {
-            ServerAuthCode = serverAuthCode,
-            CreateAccount = true,
-            TitleId = PlayFabSettings.TitleId
-        };
-
-        PlayFabClientAPI.LoginWithGooglePlayGamesServices(request, OnLoginWithGooglePlayGamesServicesSuccess, OnLoginWithGooglePlayGamesServicesFailure);
-    }
 #endif
 
     private void OnLoginWithGooglePlayGamesServicesSuccess(LoginResult result)

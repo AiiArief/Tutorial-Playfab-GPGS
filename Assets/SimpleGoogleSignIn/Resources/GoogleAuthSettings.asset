@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3776f1bd18e76c5458fe42ea58050c95, type: 3}
+  m_Name: GoogleAuthSettings
+  m_EditorClassIdentifier: 
+  Id: com.aigamestudio.tutorialplayfabgpgs
+  ClientIdGeneric: 357333282570-q33ug93gdkqqrcb4pl3i7gb598mer1t7.apps.googleusercontent.com
+  CustomUriSchemeGeneric: com.aigamestudio.tutorialplayfabgpgs
+  ClientIdWindows: 357333282570-q48cqv3f8d12t6eq3t3mh5b6durgethu.apps.googleusercontent.com
+  ClientSecretWindows: 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
+  CustomUriSchemeWindows: 
+  ClientIdWebGL: 357333282570-ijm1oov722u4pb2rr577dvom1ldijfs6.apps.googleusercontent.com
+  ClientSecretWebGL: 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
+  ClientIdDesktop: 357333282570-q48cqv3f8d12t6eq3t3mh5b6durgethu.apps.googleusercontent.com
+  ClientSecretDesktop: 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
+  AccessScopes:
+  - openid
+  - email
+  - profile
+  ManualCancellation: 0
+  UseSafariViewController: 1

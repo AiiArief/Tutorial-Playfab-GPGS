@@ -1,4 +1,4 @@
-using ImaginationOverflow.UniversalDeepLinking;
+//using ImaginationOverflow.UniversalDeepLinking;
 using PlayFab;
 using PlayFab.ClientModels;
 using System;
@@ -22,13 +22,7 @@ public class ProcessDeepLinkMngr : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
-            //Application.deepLinkActivated += onDeepLinkActivated;
-            //if (!string.IsNullOrEmpty(Application.absoluteURL))
-            //{
-            //    // Cold start and Application.absoluteURL not null so process Deep Link.
-            //    onDeepLinkActivated(Application.absoluteURL);
-            //}
-            DeepLinkManager.Instance.LinkActivated += _OnDeepLinkActivated;
+            //DeepLinkManager.Instance.LinkActivated += _OnDeepLinkActivated;
 
             DontDestroyOnLoad(gameObject);
         }
@@ -40,30 +34,30 @@ public class ProcessDeepLinkMngr : MonoBehaviour
 
     private void OnDestroy()
     {
-        DeepLinkManager.Instance.LinkActivated -= _OnDeepLinkActivated;
+        //DeepLinkManager.Instance.LinkActivated -= _OnDeepLinkActivated;
     }
 
-    private void _OnDeepLinkActivated(LinkActivation la)
-    {
-        var url = la.Uri;
-        Debug.Log("Got Deeplink Activated: " + url);
+    //private void _OnDeepLinkActivated(LinkActivation la)
+    //{
+    //    var url = la.Uri;
+    //    Debug.Log("Got Deeplink Activated: " + url);
 
-        // Decode the URL to extract auth code. 
-        string queryParams = url.Split("?"[0])[1];
-        string[] keyValuePairs = queryParams.Split("&");
-        string authCode = string.Empty;
+    //    // Decode the URL to extract auth code. 
+    //    string queryParams = url.Split("?"[0])[1];
+    //    string[] keyValuePairs = queryParams.Split("&");
+    //    string authCode = string.Empty;
 
-        foreach (string s in keyValuePairs)
-        {
-            if (s.StartsWith("code"))
-            {
-                authCode = s.Split("=")[1];
-                break;
-            }
-        }
+    //    foreach (string s in keyValuePairs)
+    //    {
+    //        if (s.StartsWith("code"))
+    //        {
+    //            authCode = s.Split("=")[1];
+    //            break;
+    //        }
+    //    }
 
-        _LoginWithGoogleAccount(authCode);
-    }
+    //    _LoginWithGoogleAccount(authCode);
+    //}
 
     private void _LoginWithGoogleAccount(string authCode)
     {
