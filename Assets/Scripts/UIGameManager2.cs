@@ -116,7 +116,11 @@ public class UIGameManager2 : MonoBehaviour
             AccessToken = serverAuthCode,
             //ServerAuthCode = serverAuthCode,
             CreateAccount = true,
-            TitleId = PlayFabSettings.TitleId
+            TitleId = PlayFabSettings.TitleId,
+            InfoRequestParameters = new GetPlayerCombinedInfoRequestParams()
+            {
+                GetPlayerProfile = true
+            }
         };
 
         PlayFabClientAPI.LoginWithGoogleAccount(request, OnLoginWithGooglePlayGamesServicesSuccess, OnLoginWithGooglePlayGamesServicesFailure);
