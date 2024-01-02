@@ -6,16 +6,21 @@ using UnityEngine.UI;
 using PlayFab;
 using PlayFab.ClientModels;
 using Assets.SimpleGoogleSignIn.Scripts;
+using UnityEngine.Purchasing;
+using UnityEngine.Purchasing.Extension;
+using Unity.Services.Core;
+using Unity.Services.Core.Environments;
 #if UNITY_ANDROID
 //using GooglePlayGames;
 //using GooglePlayGames.BasicApi;
 #endif
 
-public class LoginRequest : LoginWithGoogleAccountRequest {
+public class LoginRequest : LoginWithGoogleAccountRequest
+{
     public string AccessToken;
 }
 
-public class UIGameManager2 : MonoBehaviour
+public class UIGameManager2 : MonoBehaviour, IDetailedStoreListener
 {
     [SerializeField] GameObject m_loginPanel;
     [SerializeField] Button m_loginButton_mobile;
@@ -36,15 +41,6 @@ public class UIGameManager2 : MonoBehaviour
         GoogleAuth.GetAccessToken(OnSignIn);
     }
 
-    public void AndroidSignInButton()
-    {
-#if UNITY_ANDROID
-        m_connectionLoading.SetActive(true);
-
-        //PlayGamesPlatform.Instance.Authenticate(_ProcessAuthentication);
-#endif
-    }
-
     public void LogoutButton()
     {
         GoogleAuth.SignOut();
@@ -57,53 +53,22 @@ public class UIGameManager2 : MonoBehaviour
 
         m_connectionLoading.SetActive(false);
         m_loginPanel.SetActive(true);
-        //m_loginButton_mobile.interactable = SystemInfo.deviceType == DeviceType.Handheld;
-        //m_loginButton_pc.interactable = SystemInfo.deviceType == DeviceType.Desktop;
 
         m_contentPanel.SetActive(false);
-
-#if UNITY_ANDROID
-        //PlayGamesPlatform.Activate();
-#endif
     }
-
-    private void OnEnable()
-    {
-        //GoogleAuth.OnObtainedDeepLinkURL += ProcessServerAuthCode;
-    }
-
-    private void OnDisable()
-    {
-        //GoogleAuth.OnObtainedDeepLinkURL -= ProcessServerAuthCode;
-    }
-
-    //private string authorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
-    //private string redirectURI = "https://oauth.playfab.com/oauth2/google";
-    //private object clientID = "357333282570-ijm1oov722u4pb2rr577dvom1ldijfs6.apps.googleusercontent.com";
-    //private string scopes = "profile";
-
-    //private void LaunchBrowserAuth()
-    //{
-    //    string authorizationRequest = string.Format("{0}?response_type=code&scope={1}&redirect_uri={2}&client_id={3}",
-    //            authorizationEndpoint,
-    //            scopes,
-    //            Uri.EscapeDataString(redirectURI),
-    //            clientID);
-
-    //    Application.OpenURL(authorizationRequest);
-    //}
 
     private void OnSignIn(bool success, string error, TokenResponse tokenResponse)
     {
-        if(success)
+        if (success)
         {
             Debug.Log("Access token : " + tokenResponse.AccessToken);
             ProcessServerAuthCode(tokenResponse.AccessToken);
-        } else
+        }
+        else
         {
             Debug.Log("Error when getting Auth Code : " + error);
             PlayFabError errorPF = new PlayFabError();
-            OnLoginWithGooglePlayGamesServicesFailure(errorPF);
+            OnPlayfabLoginWithGoogleFailure(errorPF);
         }
     }
 
@@ -114,7 +79,6 @@ public class UIGameManager2 : MonoBehaviour
         var request = new LoginRequest
         {
             AccessToken = serverAuthCode,
-            //ServerAuthCode = serverAuthCode,
             CreateAccount = true,
             TitleId = PlayFabSettings.TitleId,
             InfoRequestParameters = new GetPlayerCombinedInfoRequestParams()
@@ -123,45 +87,156 @@ public class UIGameManager2 : MonoBehaviour
             }
         };
 
-        PlayFabClientAPI.LoginWithGoogleAccount(request, OnLoginWithGooglePlayGamesServicesSuccess, OnLoginWithGooglePlayGamesServicesFailure);
+        PlayFabClientAPI.LoginWithGoogleAccount(request, OnPlayfabLoginWithGoogleSuccess, OnPlayfabLoginWithGoogleFailure);
     }
 
-#if UNITY_ANDROID
-    //private void _ProcessAuthentication(SignInStatus status)
-    //{
-    //    if (status == SignInStatus.Success)
-    //    {
-    //        PlayGamesPlatform.Instance.RequestServerSideAccess(false, ProcessServerAuthCode);
-    //    }
-    //    else
-    //    {
-    //        m_connectionLoading.SetActive(false);
-    //        m_loginPanel.SetActive(true);
-    //        m_contentPanel.SetActive(false);
-    //        Debug.LogError("// ======================================== Failed google play auth : " + status.ToString());
-    //    }
-    //}
-#endif
-
-    private void OnLoginWithGooglePlayGamesServicesSuccess(LoginResult result)
+    private void OnPlayfabLoginWithGoogleSuccess(LoginResult result)
     {
         m_connectionLoading.SetActive(false);
         m_loginPanel.SetActive(false);
         m_contentPanel.SetActive(true);
         Debug.Log("PF Login Success LoginWithGooglePlayGamesServices");
 
-        m_contentText.text = 
+        m_contentText.text =
             result?.PlayFabId + "\n" +
             "newly created : " + result?.NewlyCreated + "\n" +
             "last login time : " + result?.LastLoginTime + "\n" +
             "display name : " + result?.InfoResultPayload?.PlayerProfile?.DisplayName;
     }
 
-    private void OnLoginWithGooglePlayGamesServicesFailure(PlayFabError error)
+    private void OnPlayfabLoginWithGoogleFailure(PlayFabError error)
     {
         m_loginPanel.SetActive(true);
         m_contentPanel.SetActive(false);
         m_connectionLoading.SetActive(false);
         Debug.Log("PF Login Failure LoginWithGooglePlayGamesServices: " + error.GenerateErrorReport());
+    }
+
+    // ============================================================================= Purchasing ===============================================
+
+    [Header("Subs")]
+    [SerializeField] Button m_subsButton;
+
+    public const string environment = "production";
+    public const string subscriptionProductId = "subs_donate";
+
+    IStoreController m_StoreController;
+
+    async void Start()
+    {
+        try
+        {
+            var options = new InitializationOptions()
+                .SetEnvironmentName(environment);
+
+            await UnityServices.InitializeAsync(options);
+
+            _InitializePurchasing();
+        }
+        catch (Exception exception)
+        {
+            Debug.LogError(exception);
+        }
+    }
+    public void BuySubscription()
+    {
+        m_StoreController.InitiatePurchase(subscriptionProductId);
+    }
+
+    public void OnInitialized(IStoreController controller, IExtensionProvider extensions)
+    {
+        Debug.Log("In-App Purchasing successfully initialized");
+        m_StoreController = controller;
+
+        _UpdateSubButton();
+    }
+
+    public void OnInitializeFailed(InitializationFailureReason error)
+    {
+        OnInitializeFailed(error, null);
+    }
+
+    public PurchaseProcessingResult ProcessPurchase(PurchaseEventArgs args)
+    {
+        var product = args.purchasedProduct;
+
+        Debug.Log($"Purchase Complete - Product: {product.definition.id}");
+
+        _UpdateSubButton();
+
+        return PurchaseProcessingResult.Complete;
+    }
+
+    public void OnPurchaseFailed(Product product, PurchaseFailureReason failureReason)
+    {
+        Debug.Log($"Purchase failed - Product: '{product.definition.id}', PurchaseFailureReason: {failureReason}");
+    }
+
+    public void OnPurchaseFailed(Product product, PurchaseFailureDescription failureDescription)
+    {
+        Debug.Log($"Purchase failed - Product: '{product.definition.id}'," +
+            $" Purchase failure reason: {failureDescription.reason}," +
+            $" Purchase failure details: {failureDescription.message}");
+    }
+
+    public void OnInitializeFailed(InitializationFailureReason error, string message)
+    {
+        var errorMessage = $"Purchasing failed to initialize. Reason: {error}.";
+
+        if (message != null)
+        {
+            errorMessage += $" More details: {message}";
+        }
+
+        Debug.Log(errorMessage);
+    }
+
+    private void _InitializePurchasing()
+    {
+        var builder = ConfigurationBuilder.Instance(StandardPurchasingModule.Instance());
+
+        builder.AddProduct(subscriptionProductId, ProductType.Subscription);
+
+        UnityPurchasing.Initialize(this, builder);
+    }
+
+    private void _UpdateSubButton()
+    {
+        var subscriptionProduct = m_StoreController.products.WithID(subscriptionProductId);
+
+        try
+        {
+            var isSubscribed = _IsSubscribedTo(subscriptionProduct);
+            m_subsButton.interactable = !isSubscribed;
+            m_subsButton.GetComponentInChildren<Text>().text = isSubscribed ? "Subscribed" : "Subs :\n" + subscriptionProduct.metadata.localizedPriceString;
+        }
+        catch (StoreSubscriptionInfoNotSupportedException)
+        {
+            var receipt = (Dictionary<string, object>)MiniJson.JsonDecode(subscriptionProduct.receipt);
+            var store = receipt["Store"];
+            m_subsButton.GetComponentInChildren<Text>().text =
+                "Couldn't retrieve subscription information because your current store is not supported.\n" +
+                $"Your store: \"{store}\"\n\n" +
+                "You must use the App Store, Google Play Store or Amazon Store to be able to retrieve subscription information.\n\n" +
+                "For more information, see README.md";
+        }
+    }
+
+    private bool _IsSubscribedTo(Product subscription)
+    {
+        // If the product doesn't have a receipt, then it wasn't purchased and the user is therefore not subscribed.
+        if (subscription.receipt == null)
+        {
+            return false;
+        }
+
+        //The intro_json parameter is optional and is only used for the App Store to get introductory information.
+        var subscriptionManager = new SubscriptionManager(subscription, null);
+
+        // The SubscriptionInfo contains all of the information about the subscription.
+        // Find out more: https://docs.unity3d.com/Packages/com.unity.purchasing@3.1/manual/UnityIAPSubscriptionProducts.html
+        var info = subscriptionManager.getSubscriptionInfo();
+
+        return info.isSubscribed() == Result.True;
     }
 }
